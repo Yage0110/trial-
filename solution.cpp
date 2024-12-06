@@ -7,11 +7,13 @@
 // You must declare them "inline" | declare & implement them at the top of this file, before query()
 // Below query(), implement and document all methods declared in FileTrie.hpp
 
-
-FileTrie::FileTrie() : head(new FileTrieNode{' ', {}}) {}
-
-
-//Search helper fxn
+/**
+ * @brief Recursively collects matching files from the given FileTrieNode.
+ *
+ * This function traverses the trie structure starting from a node, inserting all matching files into the result set. 
+ * @param node Pointer to the curr FileTrieNode processed.
+ * @param result Reference to an unordered_set that stores the collected files.
+ */
 inline void collection(FileTrieNode* node, std::unordered_set<File*>& result){
     for (auto& [key, child] : node->next) {
         result.insert(child->matching.begin(), child->matching.end());
@@ -53,6 +55,8 @@ std::vector<File*> FileAVL::query(size_t min, size_t max) {
     return result;
 }
 
+FileTrie::FileTrie(): head(new FileTrieNode{' ', {}}){}
+
 
 /**
  * @brief Add file to the FileTrie
@@ -61,49 +65,59 @@ std::vector<File*> FileAVL::query(size_t min, size_t max) {
  * 
  * @param f Points to the File object to be added to the trie.
  */
-void FileTrie::addFile(File* f){
-    std::string names = f -> getName();
-    FileTrieNode* curr = head;
-    head -> matching.insert(f);
-    for (char n : names){
-        char lowerC = std::tolower(n);
-        if(!curr ->next[lowerC]){
-            curr -> next[lowerC] = new FileTrieNode{lowerC};
-        }
-        curr = curr -> next[lowerC];
+void FileTrie::addFile(File* f) {
+    std::string names = f->getName();
+    std::string lower;
+
+    for (char c : names) {
+        lower += std::tolower(c);
     }
-    curr -> matching.insert(f);
+    FileTrieNode* curr = head;
+    head->matching.insert(f); 
+
+    for (char n : lower) {
+        if (!curr->next[n]) {
+            curr->next[n] = new FileTrieNode{n};
+        }
+        curr = curr->next[n];
+    }
+
+    curr->matching.insert(f);
 }
 
+
 /**
- * @brief Retrieve all files in the trie whose names start with a given prefix.
+ * @brief Retrieve files in the trie whose names start with a given prefix.
  * 
- * Converts the input prefix to lowercase, then 
- * traverses the trie following the characters of the prefix. If the prefix exists, all files 
- * in `matching` are returned.
+ * traverses the trie structure starting from the root node
+ * and collects all files that match the given prefix. If the prefix is
+ * empty, it returns all files stored in the trie.
  * 
  * @param prefix Prefix to search for
  * @return A set of pointers to File objects whose names start with a given prefix.
  */
-std::unordered_set<File*> FileTrie::getFilesWithPrefix(const std::string& prefix) const{
+std::unordered_set<File*> FileTrie::getFilesWithPrefix(const std::string& prefix) const {
     FileTrieNode* curr = head;
     std::unordered_set<File*> result;
+
     if (prefix.empty()) {
-        result.insert(head->matching.begin(), head->matching.end());
+        result.insert(head -> matching.begin(), head -> matching.end());
+        collection(head, result); 
         return result;
     }
 
     std::string lowerPre;
-    for(char c : prefix){
+    for (char c : prefix) {
         lowerPre += std::tolower(c);
     }
-    for(char c: lowerPre){
-        if(!curr ->next[c]){
-            return result;
+
+    for (char c : lowerPre) {
+        if (!curr -> next[c]) {
+            return result; 
         }
         curr = curr -> next[c];
     }
-    result.insert(curr -> matching.begin(),curr -> matching.end());
+    collection(curr, result);
 
     return result;
 }
